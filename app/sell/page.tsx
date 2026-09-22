@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient, type User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
+import { UGANDA_LOCATIONS } from '../locations';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,7 +27,7 @@ export default function SellPage() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [phone, setPhone] = useState('');
-  const [location, setLocation] = useState('Kampala Central');
+  const [location, setLocation] = useState('Kampala');
   const [category, setCategory] = useState(categories[0]);
   const [images, setImages] = useState<File[]>([]);
   const [isDraft, setIsDraft] = useState(false);
@@ -215,13 +216,7 @@ export default function SellPage() {
               onChange={(e) => setLocation(e.target.value)}
               className="w-full px-4 py-3 text-black bg-white border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option>Kampala Central</option>
-              <option>Nakawa & Bugolobi</option>
-              <option>Entebbe</option>
-              <option>Mukono</option>
-              <option>Mbarara</option>
-              <option>Jinja</option>
-              <option>Gulu</option>
+              {UGANDA_LOCATIONS.filter((district) => district !== 'All Locations').map((district) => <option key={district}>{district}</option>)}
             </select>
           </div>
 

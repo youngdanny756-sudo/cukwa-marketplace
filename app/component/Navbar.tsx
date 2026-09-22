@@ -4,6 +4,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Search, MapPin, PlusCircle, LogOut, Sparkles, Heart } from 'lucide-react';
+import { UGANDA_LOCATIONS } from '../locations';
 
 
 interface NavbarProps {
@@ -15,17 +16,6 @@ interface NavbarProps {
   onOpenFavorites?: () => void;
   onLogout?: () => void;
 }
-
-const UGANDA_LOCATIONS = [
-  'All Locations',
-  'Kampala Central',
-  'Nakawa & Bugolobi',
-  'Entebbe',
-  'Mukono',
-  'Mbarara',
-  'Jinja',
-  'Gulu',
-];
 
 export const Navbar: React.FC<NavbarProps> = ({
   searchTerm,
@@ -44,7 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <span>📞 WhatsApp: <strong>+256 766 240 810</strong></span>
-            <span className="hidden sm:inline">📍 Kampala, Uganda</span>
+            <span className="hidden sm:inline">📍 {selectedLocation}, Uganda</span>
           </div>
           <div className="flex items-center gap-2">
             <Sparkles className="w-3 h-3 text-[#F37021]" />
