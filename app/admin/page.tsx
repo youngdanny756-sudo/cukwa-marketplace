@@ -20,15 +20,18 @@ export default function AdminPage() {
   const loadAdminData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setMessage('Please log in.'); return; }
-    const { data: ownProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    const { data: ownProfile, error: profileError } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profileError) { setMessage(`Could not verify admin access: ${profileError.message}`); return; }
     if (ownProfile?.role !== 'admin') { setMessage('Admin access required.'); return; }
     const [productResult, profileResult, verificationResult, reportResult, flagResult] = await Promise.all([
-      supabase.from('products').select('id, title, category, price, description, image_url, phone, location, seller_id, status, approval_status, created_at').eq('approval_status', 'pending').order('created_at', { ascending: true }),
+      supabase.from('products').select('id, title, category, price, description, image_url, image_urls, phone, location, seller_id, status, approval_status, created_at').eq('approval_status', 'pending').order('created_at', { ascending: true }),
       supabase.from('profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('verification_requests').select('*').eq('status', 'pending').order('created_at', { ascending: true }),
       supabase.from('listing_reports').select('*').neq('status', 'resolved').order('created_at', { ascending: false }),
       supabase.from('suspicious_listing_flags').select('*').eq('status', 'open').order('score', { ascending: false }),
     ]);
+    const queryErrors = [productResult.error, profileResult.error, verificationResult.error, reportResult.error, flagResult.error].filter((error) => error !== null);
+    if (queryErrors.length) { setMessage(`Could not load all admin data: ${queryErrors.map((error) => error.message).join('; ')}`); return; }
     setProducts(productResult.data || []);
     setProfiles(profileResult.data || []);
     setVerifications(verificationResult.data || []);
@@ -40,23 +43,30 @@ export default function AdminPage() {
   useEffect(() => { void Promise.resolve().then(loadAdminData); }, []);
 
   const moderateListing = async (id: string, approval_status: string, moderation_note?: string) => {
-    await supabase.from('products').update({ approval_status, moderation_note }).eq('id', id);
+    const { error } = await supabase.from('products').update({ approval_status, moderation_note }).eq('id', id);
+    if (error) { setMessage(`Could not update listing: ${error.message}`); return; }
     void loadAdminData();
   };
 
   const reviewVerification = async (request: Verification, status: string) => {
-    if (request.id) await supabase.from('verification_requests').update({ status, reviewed_at: new Date().toISOString() }).eq('id', request.id);
-    await supabase.from('profiles').update({ is_verified: status === 'approved', verification_status: status }).eq('id', request.user_id);
+    if (request.id) {
+      const { error } = await supabase.from('verification_requests').update({ status, reviewed_at: new Date().toISOString() }).eq('id', request.id);
+      if (error) { setMessage(`Could not update verification request: ${error.message}`); return; }
+    }
+    const { error } = await supabase.from('profiles').update({ is_verified: status === 'approved', verification_status: status }).eq('id', request.user_id);
+    if (error) { setMessage(`Could not update seller verification: ${error.message}`); return; }
     void loadAdminData();
   };
 
   const updateReport = async (id: string, status: string) => {
-    await supabase.from('listing_reports').update({ status }).eq('id', id);
+    const { error } = await supabase.from('listing_reports').update({ status }).eq('id', id);
+    if (error) { setMessage(`Could not update report: ${error.message}`); return; }
     void loadAdminData();
   };
 
   const updateFlag = async (id: string, status: string) => {
-    await supabase.from('suspicious_listing_flags').update({ status }).eq('id', id);
+    const { error } = await supabase.from('suspicious_listing_flags').update({ status }).eq('id', id);
+    if (error) { setMessage(`Could not update flag: ${error.message}`); return; }
     void loadAdminData();
   };
 
@@ -74,7 +84,7 @@ export default function AdminPage() {
             {products.map((product) => (
               <div key={product.id} className="rounded-2xl bg-white p-5 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div><p className="font-semibold">{product.title}</p><p className="text-sm text-slate-500">UGX {product.price.toLocaleString()} · {product.category} · seller {product.seller_id}</p><p className="mt-2 text-sm text-slate-600">{product.description}</p></div>
+                  <div className="flex min-w-0 items-start gap-4">{product.image_url ? <img src={product.image_url} alt={product.title} className="h-24 w-24 rounded-xl object-cover" /> : <div className="h-24 w-24 shrink-0 rounded-xl bg-slate-100" />}<div><p className="font-semibold">{product.title}</p><p className="text-sm text-slate-500">UGX {product.price.toLocaleString()} · {product.category} · seller {product.seller_id}</p><p className="mt-2 text-sm text-slate-600">{product.description}</p></div></div>
                   <div className="flex gap-2"><button onClick={() => moderateListing(product.id, 'approved')} className="rounded-xl bg-green-600 px-3 py-2 text-sm font-semibold text-white">Approve</button><button onClick={() => moderateListing(product.id, 'rejected', 'Listing needs changes before approval.')} className="rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white">Reject</button></div>
                 </div>
               </div>

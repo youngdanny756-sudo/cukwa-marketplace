@@ -117,6 +117,43 @@ as $$
   );
 $$;
 
+create or replace function public.protect_profile_privileges()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if current_user in ('postgres', 'service_role', 'supabase_admin') or public.is_admin() then
+    return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    if new.role <> 'user'
+      or new.is_verified
+      or new.verification_status <> 'not_requested'
+      or new.verification_requested_at is not null
+      or new.phone_verified_at is not null
+      or new.id_verified_at is not null then
+      raise exception 'Only admins can assign roles or verification status.';
+    end if;
+  elsif new.role is distinct from old.role
+    or new.is_verified is distinct from old.is_verified
+    or new.verification_status is distinct from old.verification_status
+    or new.verification_requested_at is distinct from old.verification_requested_at
+    or new.phone_verified_at is distinct from old.phone_verified_at
+    or new.id_verified_at is distinct from old.id_verified_at then
+    raise exception 'Only admins can change roles or verification status.';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_profile_privileges on public.profiles;
+create trigger protect_profile_privileges
+  before insert or update on public.profiles
+  for each row execute function public.protect_profile_privileges();
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -153,8 +190,20 @@ values ('profile-images', 'profile-images', true)
 on conflict (id) do nothing;
 
 insert into storage.buckets (id, name, public)
+values ('product-image', 'product-image', true)
+on conflict (id) do update set public = excluded.public;
+
+insert into storage.buckets (id, name, public)
 values ('verification-documents', 'verification-documents', false)
 on conflict (id) do nothing;
+
+drop policy if exists "Users upload product images" on storage.objects;
+create policy "Users upload product images" on storage.objects for insert to authenticated
+with check (bucket_id = 'product-image' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "Public product images are viewable" on storage.objects;
+create policy "Public product images are viewable" on storage.objects for select to public
+using (bucket_id = 'product-image');
 
 drop policy if exists "Users upload profile images" on storage.objects;
 create policy "Users upload profile images" on storage.objects for insert to authenticated

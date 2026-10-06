@@ -34,6 +34,7 @@ export default function SellPage() {
   const [expiresAt, setExpiresAt] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -57,14 +58,14 @@ export default function SellPage() {
     setImages(Array.from(e.target.files || []));
   };
 
-  const uploadImages = async () => {
+  const uploadImages = async (ownerId: string) => {
     if (!images.length) return [];
 
     setUploading(true);
     const urls: string[] = [];
     for (const image of images) {
       const fileExt = image.name.split('.').pop() ?? 'jpg';
-      const filePath = `products/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const filePath = `${ownerId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
       const { error } = await supabase.storage.from('product-image').upload(filePath, image, { cacheControl: '3600', upsert: false });
       if (error) { setUploading(false); throw error; }
       urls.push(supabase.storage.from('product-image').getPublicUrl(filePath).data.publicUrl);
@@ -78,9 +79,10 @@ export default function SellPage() {
     if (!user) return;
 
     setLoading(true);
+    setSubmitError('');
 
     try {
-      const imageUrls = await uploadImages();
+      const imageUrls = await uploadImages(user.id);
 
       const { data: savedProduct, error } = await supabase.from('products').insert({
         seller_id: user.id,
@@ -112,7 +114,7 @@ export default function SellPage() {
       router.push('/');
     } catch (error) {
       console.error('Error posting ad:', error);
-      alert('Failed to post ad. Please try again.');
+      setSubmitError(error instanceof Error ? error.message : 'Failed to post ad. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -231,10 +233,11 @@ export default function SellPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photo</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos</label>
             <input
               type="file"
               accept="image/*"
+              multiple
               onChange={handleImageChange}
               className="w-full text-black bg-white file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:text-black file:bg-orange-100"
               required
@@ -248,6 +251,7 @@ export default function SellPage() {
           >
             {loading || uploading ? 'Saving...' : isDraft ? 'Save Draft' : 'Submit for Approval'}
           </button>
+          {submitError && <p role="alert" className="text-sm text-red-700">{submitError}</p>}
         </form>
       </div>
     </div>

@@ -9,8 +9,9 @@ export type Product = {
   phone: string | null;
   location: string | null;
   seller_id: string;
-  status?: 'active' | 'sold' | 'removed';
+  status?: 'active' | 'sold' | 'removed' | 'draft';
   approval_status?: 'pending' | 'approved' | 'rejected';
+  moderation_note?: string | null;
   expires_at?: string | null;
   is_draft?: boolean;
   created_at?: string;
