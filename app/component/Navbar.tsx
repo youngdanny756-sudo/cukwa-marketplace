@@ -85,10 +85,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             {onLogout && (
               <button
                 onClick={onLogout}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-bold transition-colors"
+                aria-label="Log out"
+                title="Log out"
+                className="flex shrink-0 items-center gap-1.5 rounded-xl px-2 py-2.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-100 sm:px-3"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Log out</span>
+                <span className="hidden sm:inline">Log out</span>
               </button>
             )}
             {onOpenFavorites && (
