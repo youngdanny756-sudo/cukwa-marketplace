@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createClient, type User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { UGANDA_LOCATIONS } from '../locations';
@@ -21,6 +21,8 @@ const categories = [
   'Other Goods & Services',
 ];
 
+type SelectedPhoto = { file: File; previewUrl: string };
+
 export default function SellPage() {
   const [user, setUser] = useState<User | null>(null);
   const [title, setTitle] = useState('');
@@ -29,7 +31,9 @@ export default function SellPage() {
   const [phone, setPhone] = useState('');
   const [location, setLocation] = useState('Kampala');
   const [category, setCategory] = useState(categories[0]);
-  const [images, setImages] = useState<File[]>([]);
+  const [images, setImages] = useState<SelectedPhoto[]>([]);
+  const selectedPhotosRef = useRef<SelectedPhoto[]>([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [isDraft, setIsDraft] = useState(false);
   const [expiresAt, setExpiresAt] = useState('');
   const [loading, setLoading] = useState(false);
@@ -54,8 +58,32 @@ export default function SellPage() {
     checkUser();
   }, [router]);
 
+  useEffect(() => () => {
+    selectedPhotosRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+  }, []);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setImages(Array.from(e.target.files || []));
+    const selectedImages = Array.from(e.target.files || []).map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    const nextImages = [...selectedPhotosRef.current, ...selectedImages];
+    selectedPhotosRef.current = nextImages;
+    setImages(nextImages);
+    e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    const removedPhoto = selectedPhotosRef.current[index];
+    if (removedPhoto) URL.revokeObjectURL(removedPhoto.previewUrl);
+    const nextImages = selectedPhotosRef.current.filter((_, imageIndex) => imageIndex !== index);
+    selectedPhotosRef.current = nextImages;
+    setImages(nextImages);
+    setPreviewIndex((currentIndex) => {
+      if (index === currentIndex) return Math.max(0, currentIndex - 1);
+      if (index < currentIndex) return currentIndex - 1;
+      return currentIndex;
+    });
   };
 
   const uploadImages = async (ownerId: string) => {
@@ -63,7 +91,7 @@ export default function SellPage() {
 
     setUploading(true);
     const urls: string[] = [];
-    for (const image of images) {
+    for (const { file: image } of images) {
       const fileExt = image.name.split('.').pop() ?? 'jpg';
       const filePath = `${ownerId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
       const { error } = await supabase.storage.from('product-image').upload(filePath, image, { cacheControl: '3600', upsert: false });
@@ -77,6 +105,10 @@ export default function SellPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (images.length === 0) {
+      setSubmitError('Add at least one photo of the item before posting.');
+      return;
+    }
 
     setLoading(true);
     setSubmitError('');
@@ -159,7 +191,7 @@ export default function SellPage() {
               className="w-full px-4 py-3 text-black bg-white border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               required={!isDraft}
             />
-            <p className="mt-2 text-xs text-slate-500">Select multiple photos. The first photo is the cover.</p>
+            <p className="mt-2 text-xs text-slate-500">Add photos of the same item from different angles. The first photo is the cover image.</p>
           </div>
 
           <div>
@@ -233,15 +265,51 @@ export default function SellPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Photos of this item</label>
             <input
               type="file"
               accept="image/*"
               multiple
               onChange={handleImageChange}
               className="w-full text-black bg-white file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:text-black file:bg-orange-100"
-              required
             />
+            <p className="mt-2 text-xs text-slate-500">Choose one or more photos. You can add more photos in another selection.</p>
+            {images.length > 0 && (
+              <div className="mt-4">
+                <div className="overflow-hidden rounded-2xl bg-slate-100">
+                  <img
+                    src={images[previewIndex].previewUrl}
+                    alt={`Preview of ${title || 'your item'}, photo ${previewIndex + 1}`}
+                    className="h-64 w-full object-contain"
+                  />
+                </div>
+                <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
+                  {images.map((image, index) => (
+                    <div key={`${image.file.name}-${index}`} className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewIndex(index)}
+                        aria-label={`Show photo ${index + 1}${index === 0 ? ', cover photo' : ''}`}
+                        aria-pressed={previewIndex === index}
+                        className={`overflow-hidden rounded-xl border-2 ${previewIndex === index ? 'border-orange-500' : 'border-transparent'}`}
+                      >
+                        <img src={image.previewUrl} alt="" className="h-20 w-20 object-cover" />
+                      </button>
+                      {index === 0 && <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">Cover</span>}
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        aria-label={`Remove photo ${index + 1}`}
+                        className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-sm font-bold text-white"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500">{images.length} {images.length === 1 ? 'photo' : 'photos'} selected. The cover photo appears first in the marketplace.</p>
+              </div>
+            )}
           </div>
 
           <button
