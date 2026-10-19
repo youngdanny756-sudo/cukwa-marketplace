@@ -26,14 +26,17 @@ drop policy if exists "Chat participants can read messages"
 
 create policy "Chat participants can read messages"
 	on public.chat_messages for select
-	using (auth.uid() = sender_id or auth.uid() = recipient_id);
+	using (
+		auth.uid()::text = sender_id::text
+		or auth.uid()::text = recipient_id::text
+	);
 
 drop policy if exists "Users can send chat messages"
 	on public.chat_messages;
 
 create policy "Users can send chat messages"
 	on public.chat_messages for insert
-	with check (auth.uid() = sender_id);
+	with check (auth.uid()::text = sender_id::text);
 
 do $$
 begin
@@ -48,4 +51,3 @@ begin
 	end if;
 end;
 $$;
-

@@ -32,6 +32,14 @@ create policy "Users mark their notifications read"
   using (recipient_id = auth.uid())
   with check (recipient_id = auth.uid());
 
+drop policy if exists "Chat participants can read messages" on public.chat_messages;
+create policy "Chat participants can read messages"
+  on public.chat_messages for select
+  using (
+    auth.uid()::text = sender_id::text
+    or auth.uid()::text = recipient_id::text
+  );
+
 drop policy if exists "Users can send chat messages" on public.chat_messages;
 create policy "Users can send chat messages"
   on public.chat_messages for insert
@@ -55,6 +63,37 @@ create policy "Users can send chat messages"
         )
     )
   );
+
+drop policy if exists "Active products are public" on public.products;
+drop policy if exists "Active approved products are public" on public.products;
+create policy "Active approved products are public"
+  on public.products for select
+  using (
+    (
+      status = 'active'
+      and approval_status = 'approved'
+      and is_draft = false
+      and (expires_at is null or expires_at > now())
+    )
+    or seller_id::text = auth.uid()::text
+    or public.is_admin()
+  );
+
+drop policy if exists "Owners can create products" on public.products;
+create policy "Owners can create products"
+  on public.products for insert
+  with check (seller_id::text = auth.uid()::text);
+
+drop policy if exists "Owners can update products" on public.products;
+create policy "Owners can update products"
+  on public.products for update
+  using (seller_id::text = auth.uid()::text or public.is_admin())
+  with check (seller_id::text = auth.uid()::text or public.is_admin());
+
+drop policy if exists "Owners can delete products" on public.products;
+create policy "Owners can delete products"
+  on public.products for delete
+  using (seller_id::text = auth.uid()::text or public.is_admin());
 
 create index if not exists chat_messages_sender_created_idx
   on public.chat_messages(sender_id, created_at desc);

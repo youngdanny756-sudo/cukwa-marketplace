@@ -263,17 +263,17 @@ drop policy if exists "Owners can update products" on public.products;
 drop policy if exists "Owners can delete products" on public.products;
 
 create policy "Active products are public"
-  on public.products for select using (status = 'active' or seller_id = auth.uid() or public.is_admin());
+  on public.products for select using (status = 'active' or seller_id::text = auth.uid()::text or public.is_admin());
 
 create policy "Owners can create products"
-  on public.products for insert with check (seller_id = auth.uid());
+  on public.products for insert with check (seller_id::text = auth.uid()::text);
 
 create policy "Owners can update products"
-  on public.products for update using (seller_id = auth.uid() or public.is_admin())
-  with check (seller_id = auth.uid() or public.is_admin());
+  on public.products for update using (seller_id::text = auth.uid()::text or public.is_admin())
+  with check (seller_id::text = auth.uid()::text or public.is_admin());
 
 create policy "Owners can delete products"
-  on public.products for delete using (seller_id = auth.uid() or public.is_admin());
+  on public.products for delete using (seller_id::text = auth.uid()::text or public.is_admin());
 
 drop policy if exists "Users manage their favorites" on public.favorites;
 create policy "Users manage their favorites"
@@ -314,7 +314,7 @@ drop policy if exists "Active approved products are public" on public.products;
 drop policy if exists "Active products are public" on public.products;
 create policy "Active approved products are public"
   on public.products for select
-  using ((status = 'active' and approval_status = 'approved' and is_draft = false and (expires_at is null or expires_at > now())) or seller_id = auth.uid() or public.is_admin());
+  using ((status = 'active' and approval_status = 'approved' and is_draft = false and (expires_at is null or expires_at > now())) or seller_id::text = auth.uid()::text or public.is_admin());
 
 drop policy if exists "Users manage own verification requests" on public.verification_requests;
 create policy "Users manage own verification requests"
