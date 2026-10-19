@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import ChatModal from './component/ChatModal';
 import { Navbar } from './component/Navbar';
 import { supabase } from './lib/supabase';
@@ -148,6 +149,7 @@ export default function Home() {
         onOpenPostAd={() => router.push('/sell')}
         onOpenFavorites={() => router.push('/favorites')}
         onLogout={async () => { const { error } = await supabase.auth.signOut(); if (error) setLoadError(error.message); else router.push('/login'); }}
+        isAdmin={isAdmin}
       />
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 sm:mb-8">
@@ -190,7 +192,9 @@ export default function Home() {
           {products.map((product) => (
             <article key={product.id} className="overflow-hidden rounded-2xl bg-white shadow-sm sm:rounded-3xl sm:shadow">
               <Link href={`/product/${product.id}`} aria-label={`View ${product.title}`}>
-                {product.image_url ? <img src={product.image_url} alt={product.title} className="h-48 w-full object-cover sm:h-52" /> : <div className="h-48 bg-slate-100 sm:h-52" />}
+                {product.image_url
+                  ? <div className="relative h-48 w-full sm:h-52"><Image src={product.image_url} alt={product.title} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover" /></div>
+                  : <div className="h-48 bg-slate-100 sm:h-52" />}
               </Link>
               <div className="p-4 sm:p-6">
                 <div className="flex items-start justify-between gap-3">

@@ -18,6 +18,8 @@ declare module 'lucide-react' {
    export const ArrowLeft: Icon;
    export const Send: Icon;
    export const Share2: Icon;
+   export const Menu: Icon;
+   export const X: Icon;
   export const Eye: Icon;
   export const EyeOff: Icon;
 }

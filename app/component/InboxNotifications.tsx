@@ -116,17 +116,21 @@ export function InboxNotifications() {
 
   return (
     <div className="relative flex items-center gap-1">
-      <Link href="/inbox" aria-label="Open inbox" title="Inbox" className="relative rounded-xl p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-[#F37021]">
+      <Link href="/inbox" aria-label="Open inbox" title="Inbox" className="relative inline-flex flex-col items-center justify-center gap-0.5 rounded-xl p-1.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-[#F37021] sm:flex-row sm:gap-1.5 sm:p-2">
         <MessageCircle className="h-5 w-5" />
+        <span className="text-[9px] font-semibold leading-3 sm:hidden">Inbox</span>
+        <span className="hidden text-xs font-semibold sm:inline">Inbox</span>
       </Link>
       <button
         type="button"
         aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
         aria-expanded={isOpen}
         onClick={() => setIsOpen((open) => !open)}
-        className="relative rounded-xl p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-[#F37021]"
+        className="relative inline-flex flex-col items-center justify-center gap-0.5 rounded-xl p-1.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-[#F37021] sm:flex-row sm:gap-1.5 sm:p-2"
       >
         <Bell className="h-5 w-5" />
+        <span className="text-[9px] font-semibold leading-3 sm:hidden">Alerts</span>
+        <span className="hidden text-xs font-semibold sm:inline">Alerts</span>
         {unreadCount > 0 && <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-600 px-1 text-center text-xs font-bold leading-5 text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
       </button>
       {isOpen && (
