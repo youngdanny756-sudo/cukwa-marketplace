@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createClient, type User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { UGANDA_LOCATIONS } from '../locations';
+import { BackToMarketLink } from '../component/BackToMarketLink';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -167,20 +168,15 @@ export default function SellPage() {
           <div className="text-3xl font-bold">
             CUK<span className="text-orange-400">WA</span>
           </div>
-          <button
-            onClick={() => router.push('/')}
-            className="bg-white text-blue-700 px-5 py-2 rounded-xl font-medium"
-          >
-            Back to Market
-          </button>
+          <BackToMarketLink />
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto p-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Post an Ad</h1>
+      <div className="mx-auto max-w-2xl px-4 py-6 sm:p-8">
+        <h1 className="mb-2 text-2xl font-bold text-gray-800 sm:text-3xl">Post an Ad</h1>
         <p className="text-gray-700 mb-8">Sell anything on CUK<span className="text-orange-400">WA</span></p>
 
-        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl shadow-lg space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl bg-white p-5 shadow-lg sm:rounded-3xl sm:p-8">
           <div>
             <label className="block text-sm font-medium text-gray-800 mb-2">Product Title</label>
             <input

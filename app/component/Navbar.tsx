@@ -5,6 +5,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Search, MapPin, PlusCircle, LogOut, Sparkles, Heart } from 'lucide-react';
 import { UGANDA_LOCATIONS } from '../locations';
+import { InboxNotifications } from './InboxNotifications';
 
 
 interface NavbarProps {
@@ -102,15 +103,30 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span>Saved</span>
               </button>
             )}
+            <InboxNotifications />
             <button
               onClick={onOpenPostAd}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#F37021] hover:bg-[#ff7b2b] text-white text-xs font-black shadow-sm transition-all"
+              aria-label="Post a free ad"
+              className="flex items-center gap-1 rounded-xl bg-[#F37021] px-2 py-2.5 text-xs font-black text-white shadow-sm transition-all hover:bg-[#ff7b2b] sm:gap-1.5 sm:px-4"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>Post Free Ad</span>
+              <span className="hidden sm:inline">Post Free Ad</span>
             </button>
           </div>
         </div>
+      </div>
+      <div className="border-t border-slate-100 px-4 py-2 md:hidden">
+        <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3">
+          <Search className="h-4 w-4 shrink-0 text-slate-400" />
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search listings"
+            className="min-w-0 flex-1 bg-transparent py-2 text-sm text-slate-800 outline-none"
+            aria-label="Search listings"
+          />
+        </label>
       </div>
     </header>
   );

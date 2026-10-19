@@ -21,9 +21,9 @@ export default function ResetPasswordPage() {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0F3460] p-4">
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.12]"><img src="/cukwa-logo.svg" alt="" aria-hidden="true" className="w-[min(900px,90vw)]" /></div>
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.12]"><img src="/cukwa-logo.png" alt="" aria-hidden="true" className="w-[min(900px,90vw)]" /></div>
       <section className="relative z-10 w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl sm:p-10">
-        <img src="/cukwa-logo.svg" alt="CUKWA marketplace" className="mx-auto mb-6 h-14 w-auto" />
+        <img src="/cukwa-logo.png" alt="CUKWA marketplace" className="mx-auto mb-6 h-14 w-14 rounded-xl object-cover" />
         <h1 className="text-2xl font-bold text-slate-900">Reset your password</h1>
         <p className="mt-2 text-sm text-slate-600">Enter your account email and we will send you a secure reset link.</p>
         <form onSubmit={requestReset} className="mt-6 space-y-4">

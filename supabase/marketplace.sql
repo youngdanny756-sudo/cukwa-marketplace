@@ -18,6 +18,20 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now()
 );
 
+alter table public.profiles add column if not exists display_name text;
+alter table public.profiles add column if not exists avatar_url text;
+alter table public.profiles add column if not exists bio text;
+alter table public.profiles add column if not exists location text;
+alter table public.profiles add column if not exists phone text;
+alter table public.profiles add column if not exists whatsapp_number text;
+alter table public.profiles add column if not exists is_verified boolean not null default false;
+alter table public.profiles add column if not exists verification_status text not null default 'not_requested';
+alter table public.profiles add column if not exists verification_requested_at timestamptz;
+alter table public.profiles add column if not exists phone_verified_at timestamptz;
+alter table public.profiles add column if not exists id_verified_at timestamptz;
+alter table public.profiles add column if not exists role text not null default 'user';
+alter table public.profiles add column if not exists created_at timestamptz not null default now();
+
 alter table public.products add column if not exists location text;
 alter table public.products add column if not exists phone text;
 alter table public.products add column if not exists status text not null default 'active';
@@ -333,3 +347,5 @@ create policy "Admins manage user reports"
 drop policy if exists "Admins manage suspicious flags" on public.suspicious_listing_flags;
 create policy "Admins manage suspicious flags"
   on public.suspicious_listing_flags for all using (public.is_admin()) with check (public.is_admin());
+
+notify pgrst, 'reload schema';

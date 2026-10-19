@@ -3,9 +3,14 @@
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { Share2 } from 'lucide-react';
 import ChatModal from '../../component/ChatModal';
+import { BackToMarketLink } from '../../component/BackToMarketLink';
 import { supabase } from '../../lib/supabase';
+import { toWhatsAppNumber } from '../../lib/contacts';
 import type { Product } from '../../types';
+
+type SellerContact = { display_name: string | null; phone: string | null; whatsapp_number: string | null };
 
 export default function ProductPage() {
   const params = useParams<{ id: string }>();
@@ -18,14 +23,27 @@ export default function ProductPage() {
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [safetyMessage, setSafetyMessage] = useState('');
+  const [sellerContact, setSellerContact] = useState<SellerContact | null>(null);
 
   useEffect(() => {
     const loadProduct = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) setMessage(`Could not check your account: ${authError.message}`);
       setUserId(user?.id || null);
-      const { data } = await supabase.from('products').select('id, title, category, price, description, image_url, image_urls, phone, location, seller_id, status, approval_status, created_at').eq('id', params.id).single();
+      const { data, error } = await supabase.from('products').select('id, title, category, price, description, image_url, image_urls, phone, location, seller_id, status, approval_status, created_at').eq('id', params.id).single();
+      if (error) { setMessage(`Could not load listing: ${error.message}`); return; }
       setSelectedImageUrl(null);
       setProduct(data);
+      const { data: profile, error: profileError } = await supabase.from('profiles').select('display_name, phone, whatsapp_number').eq('id', data.seller_id).maybeSingle();
+      if (profileError) setMessage(`Could not load seller contact details: ${profileError.message}`);
+      setSellerContact(profile);
+      if (user && user.id !== data.seller_id) {
+        const { error: viewError } = await supabase.from('listing_views').upsert(
+          { product_id: String(data.id), viewer_id: user.id },
+          { onConflict: 'product_id,viewer_id', ignoreDuplicates: true },
+        );
+        if (viewError) setMessage(`Could not record listing view: ${viewError.message}`);
+      }
     };
     void Promise.resolve().then(loadProduct);
   }, [params.id]);
@@ -57,18 +75,33 @@ export default function ProductPage() {
     setSafetyMessage(error ? error.message : 'Seller report submitted for admin review.');
   };
 
+  const shareListing = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: product?.title || 'CUKWA listing', url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setMessage('Listing link copied. You can now share it.');
+      }
+    } catch (shareError) {
+      if (shareError instanceof DOMException && shareError.name === 'AbortError') return;
+      setMessage(shareError instanceof Error ? `Could not share listing: ${shareError.message}` : 'Could not share listing.');
+    }
+  };
+
   if (!product) return <main className="p-8">Loading listing...</main>;
 
   const productImages = Array.from(new Set([product.image_url, ...(product.image_urls || [])].filter((url): url is string => Boolean(url))));
   const activeImage = productImages.find((url) => url === selectedImageUrl) || productImages[0];
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <main className="min-h-screen bg-gray-50 px-4 py-5 sm:p-8">
       <div className="mx-auto max-w-5xl">
-        <Link href="/" className="text-sm font-semibold text-blue-700 hover:underline">Back to marketplace</Link>
-        <div className="mt-6 grid gap-8 rounded-3xl bg-white p-6 shadow-sm md:grid-cols-2">
+        <BackToMarketLink />
+        <div className="mt-5 grid gap-5 rounded-2xl bg-white p-4 shadow-sm sm:mt-6 sm:gap-8 sm:rounded-3xl sm:p-6 md:grid-cols-2">
           <section aria-label="Product photos">
-            <div className="flex h-96 items-center justify-center overflow-hidden rounded-2xl bg-slate-100">
+            <div className="flex h-64 items-center justify-center overflow-hidden rounded-2xl bg-slate-100 sm:h-96">
               {activeImage ? <img src={activeImage} alt={`${product.title}, selected photo`} className="h-full w-full object-contain" /> : <span className="text-sm text-slate-500">No photo available</span>}
             </div>
             {productImages.length > 1 && (
@@ -93,12 +126,17 @@ export default function ProductPage() {
           </section>
           <div>
             <p className="text-sm font-semibold text-orange-500">{product.category}</p>
-            <h1 className="mt-2 text-4xl font-bold text-slate-900">{product.title}</h1>
-            <p className="mt-4 text-3xl font-bold text-orange-500">UGX {product.price.toLocaleString()}</p>
+            <h1 className="mt-2 break-words text-2xl font-bold text-slate-900 sm:text-4xl">{product.title}</h1>
+            <p className="mt-4 text-2xl font-bold text-orange-500 sm:text-3xl">UGX {product.price.toLocaleString()}</p>
             <p className="mt-5 whitespace-pre-wrap text-slate-600">{product.description || 'No description provided.'}</p>
-            <p className="mt-5 text-sm text-slate-500">{product.location || 'Location not provided'} · {product.phone || 'Phone not provided'}</p>
-            <Link href={`/seller/${product.seller_id}`} className="mt-4 block font-semibold text-blue-700 hover:underline">View seller profile</Link>
-            <button onClick={() => setShowChat(true)} className="mt-6 w-full rounded-xl bg-purple-600 py-3 font-semibold text-white hover:bg-purple-700">Chat with Seller</button>
+            <p className="mt-5 text-sm text-slate-500">{product.location || 'Location not provided'}</p>
+            <Link href={`/seller/${product.seller_id}`} className="mt-3 block font-semibold text-blue-700 hover:underline">View {sellerContact?.display_name || 'seller'} profile</Link>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {(sellerContact?.phone || product.phone) && <a href={`tel:${sellerContact?.phone || product.phone}`} className="rounded-xl bg-green-700 px-4 py-3 text-sm font-bold text-white hover:bg-green-800">Call seller</a>}
+              {(sellerContact?.whatsapp_number || sellerContact?.phone || product.phone) && <a href={`https://wa.me/${toWhatsAppNumber(sellerContact?.whatsapp_number || sellerContact?.phone || product.phone || '')}`} target="_blank" rel="noreferrer" className="rounded-xl border border-green-700 px-4 py-3 text-sm font-bold text-green-800 hover:bg-green-50">WhatsApp</a>}
+              <button type="button" onClick={() => void shareListing()} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Share2 className="h-4 w-4" />Share listing</button>
+            </div>
+            {userId !== product.seller_id && <button onClick={() => setShowChat(true)} className="mt-4 w-full rounded-xl bg-purple-600 py-3 font-semibold text-white hover:bg-purple-700">Message seller</button>}
             {userId === product.seller_id && <button onClick={() => router.push(`/edit/${product.id}`)} className="mt-3 w-full rounded-xl border border-slate-200 py-3 font-semibold text-slate-700">Edit listing</button>}
           </div>
         </div>

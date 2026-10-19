@@ -14,6 +14,20 @@ CUKWA is a Uganda-focused marketplace for posting and browsing classified ads.
 
 Ads submitted for approval stay private from other marketplace users until an admin approves them. Sellers can still see their own ads in **My listings**.
 
+## Inbox, notifications, moderation history, and insights
+
+For a complete buyer/seller inbox, in-app notifications, listing view counts, seller-report moderation, and moderator action history:
+
+1. Open the Supabase project’s **SQL Editor**.
+2. Run `supabase/feature-upgrades.sql` after the existing products table, `supabase/marketplace.sql`, and `supabase/chat.sql` are set up.
+3. Reload the CUKWA app after the script completes.
+
+The migration adds row-level security policies for notifications and listing views, enables realtime notifications, and creates database triggers for new-message and listing-approval/rejection notifications. It also adds moderator-note fields to both report types and records report status/note changes in an admin-only history table.
+
+Seller insights count distinct signed-in buyers who opened an approved listing and distinct buyers who sent at least one chat message about that listing. These counts do not include anonymous visitors or repeated views from the same account.
+
+The marketplace now supports price bounds, newest/price sorting, and incremental loading. Seller pages show written reviews, verification guidance, and phone/WhatsApp actions. Listing pages offer native sharing or a copy-link fallback on browsers without the Share API.
+
 ## Supabase setup
 
 Run `supabase/marketplace.sql` in the Supabase SQL Editor after the existing products table and `supabase/chat.sql` setup. This creates the product-image storage bucket and access rules required for ad photos, and protects admin/verification fields from being changed by ordinary users. If the database was configured before, run this updated script again to apply those changes.

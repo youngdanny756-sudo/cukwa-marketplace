@@ -52,12 +52,12 @@ export default function Login() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0F3460] p-4">
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.12]">
-        <img src="/cukwa-logo.svg" alt="" aria-hidden="true" className="w-[min(900px,90vw)]" />
+        <img src="/cukwa-logo.png" alt="" aria-hidden="true" className="w-[min(900px,90vw)]" />
       </div>
 
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-10 relative z-10">
         <div className="text-center mb-8">
-          <img src="/cukwa-logo.svg" alt="CUKWA marketplace" className="mx-auto mb-5 h-14 w-auto" />
+          <img src="/cukwa-logo.png" alt="CUKWA marketplace" className="mx-auto mb-5 h-14 w-auto" />
           <h1 className="text-3xl font-bold text-blue-900">Welcome back</h1>
           <p className="mt-1 font-semibold text-orange-600">Buy, sell, and connect locally</p>
         </div>

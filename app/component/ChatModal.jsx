@@ -47,6 +47,18 @@ const ChatModal = ({ productId, productTitle, sellerId, onClose }) => {
         setMessages(data || []);
       }
 
+      const markConversationRead = async () => {
+        const { error: readError } = await supabase
+          .from('notifications')
+          .update({ read_at: new Date().toISOString() })
+          .eq('recipient_id', user.id)
+          .eq('type', 'chat_message')
+          .is('read_at', null)
+          .contains('data', { product_id: productId, sender_id: sellerId });
+        if (readError) setError(`Could not mark messages as read: ${readError.message}`);
+      };
+      void markConversationRead();
+
       channel = supabase
         .channel(`chat-${productId}-${user.id}-${crypto.randomUUID()}`)
         .on(
@@ -64,6 +76,7 @@ const ChatModal = ({ productId, productTitle, sellerId, onClose }) => {
                   ? current
                   : [...current, message]
               );
+              if (message.sender_id !== user.id) void markConversationRead();
             }
           }
         )

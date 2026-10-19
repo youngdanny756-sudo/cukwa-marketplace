@@ -14,6 +14,10 @@ declare module 'lucide-react' {
    export const Mail: Icon;
    export const ShieldCheck: Icon;
    export const MessageCircle: Icon;
+   export const Bell: Icon;
+   export const ArrowLeft: Icon;
+   export const Send: Icon;
+   export const Share2: Icon;
   export const Eye: Icon;
   export const EyeOff: Icon;
 }

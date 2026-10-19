@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
 import type { Product } from '../types';
+import { BackToMarketLink } from '../component/BackToMarketLink';
 
 export default function FavoritesPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -24,5 +25,5 @@ export default function FavoritesPage() {
     loadFavorites();
   }, []);
 
-  return <main className="min-h-screen bg-gray-50 p-8"><div className="mx-auto max-w-6xl"><Link href="/" className="text-sm font-semibold text-blue-700 hover:underline">Back to marketplace</Link><h1 className="mt-6 text-3xl font-bold text-slate-900">Saved listings</h1>{message && <p className="mt-4 text-slate-500">{message}</p>}<div className="mt-6 grid gap-6 md:grid-cols-3">{products.map((product) => <Link key={product.id} href={`/product/${product.id}`} className="overflow-hidden rounded-2xl bg-white shadow-sm">{product.image_url ? <img src={product.image_url} alt={product.title} className="h-44 w-full object-cover" /> : <div className="h-44 bg-slate-100" />}<div className="p-5"><h2 className="font-semibold">{product.title}</h2><p className="mt-2 font-bold text-orange-500">UGX {product.price.toLocaleString()}</p></div></Link>)}</div></div></main>;
+  return <main className="min-h-screen bg-gray-50 px-4 py-5 sm:p-8"><div className="mx-auto max-w-6xl"><BackToMarketLink /><h1 className="mt-6 text-3xl font-bold text-slate-900">Saved listings</h1>{message && <p className="mt-4 text-slate-500">{message}</p>}<div className="mt-6 grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">{products.map((product) => <Link key={product.id} href={`/product/${product.id}`} className="overflow-hidden rounded-2xl bg-white shadow-sm">{product.image_url ? <img src={product.image_url} alt={product.title} className="h-44 w-full object-cover" /> : <div className="h-44 bg-slate-100" />}<div className="p-4 sm:p-5"><h2 className="font-semibold">{product.title}</h2><p className="mt-2 font-bold text-orange-500">UGX {product.price.toLocaleString()}</p></div></Link>)}</div></div></main>;
 }
