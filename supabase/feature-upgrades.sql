@@ -13,6 +13,11 @@ create table if not exists public.notifications (
   created_at timestamptz not null default now()
 );
 
+alter table public.notifications
+  alter column recipient_id type uuid using recipient_id::text::uuid;
+alter table public.notifications
+  alter column actor_id type uuid using actor_id::text::uuid;
+
 create index if not exists notifications_recipient_created_idx
   on public.notifications(recipient_id, created_at desc);
 create index if not exists notifications_unread_idx
@@ -25,12 +30,13 @@ grant update (read_at) on public.notifications to authenticated;
 
 drop policy if exists "Users read their notifications" on public.notifications;
 create policy "Users read their notifications"
-  on public.notifications for select using (recipient_id = auth.uid());
+  on public.notifications for select
+  using (recipient_id::text = auth.uid()::text);
 drop policy if exists "Users mark their notifications read" on public.notifications;
 create policy "Users mark their notifications read"
   on public.notifications for update
-  using (recipient_id = auth.uid())
-  with check (recipient_id = auth.uid());
+  using (recipient_id::text = auth.uid()::text)
+  with check (recipient_id::text = auth.uid()::text);
 
 drop policy if exists "Chat participants can read messages" on public.chat_messages;
 create policy "Chat participants can read messages"
@@ -250,7 +256,7 @@ drop policy if exists "Users record their own listing views" on public.listing_v
 create policy "Users record their own listing views"
   on public.listing_views for insert
   with check (
-    viewer_id = auth.uid()
+    viewer_id::text = auth.uid()::text
     and exists (
       select 1 from public.products
       where products.id::text = listing_views.product_id
