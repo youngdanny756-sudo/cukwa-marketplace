@@ -13,11 +13,6 @@ create table if not exists public.notifications (
   created_at timestamptz not null default now()
 );
 
-alter table public.notifications
-  alter column recipient_id type uuid using recipient_id::text::uuid;
-alter table public.notifications
-  alter column actor_id type uuid using actor_id::text::uuid;
-
 create index if not exists notifications_recipient_created_idx
   on public.notifications(recipient_id, created_at desc);
 create index if not exists notifications_unread_idx
@@ -173,14 +168,18 @@ begin
   where id::text = new.product_id;
 
   insert into public.notifications (recipient_id, actor_id, type, title, body, data)
-  values (
-    new.recipient_id::text::uuid,
-    new.sender_id::text::uuid,
-    'chat_message',
-    'New message',
-    coalesce(listing_title, 'A marketplace listing'),
-    jsonb_build_object('product_id', new.product_id, 'sender_id', new.sender_id)
-  );
+  select row_data.recipient_id, row_data.actor_id, row_data.type, row_data.title, row_data.body, row_data.data
+  from jsonb_populate_record(
+    null::public.notifications,
+    jsonb_build_object(
+      'recipient_id', new.recipient_id::text,
+      'actor_id', new.sender_id::text,
+      'type', 'chat_message',
+      'title', 'New message',
+      'body', coalesce(listing_title, 'A marketplace listing'),
+      'data', jsonb_build_object('product_id', new.product_id, 'sender_id', new.sender_id::text)
+    )
+  ) as row_data;
   return new;
 end;
 $$;
@@ -200,13 +199,17 @@ begin
   if old.approval_status is distinct from new.approval_status
     and new.approval_status in ('approved', 'rejected') then
     insert into public.notifications (recipient_id, type, title, body, data)
-    values (
-      new.seller_id::uuid,
-      case when new.approval_status = 'approved' then 'listing_approved' else 'listing_rejected' end,
-      case when new.approval_status = 'approved' then 'Listing approved' else 'Listing needs changes' end,
-      coalesce(new.moderation_note, new.title),
-      jsonb_build_object('product_id', new.id::text)
-    );
+    select row_data.recipient_id, row_data.type, row_data.title, row_data.body, row_data.data
+    from jsonb_populate_record(
+      null::public.notifications,
+      jsonb_build_object(
+        'recipient_id', new.seller_id::text,
+        'type', case when new.approval_status = 'approved' then 'listing_approved' else 'listing_rejected' end,
+        'title', case when new.approval_status = 'approved' then 'Listing approved' else 'Listing needs changes' end,
+        'body', coalesce(new.moderation_note, new.title),
+        'data', jsonb_build_object('product_id', new.id::text)
+      )
+    ) as row_data;
   end if;
   return new;
 end;
