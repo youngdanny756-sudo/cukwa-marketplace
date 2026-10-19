@@ -314,22 +314,26 @@ set search_path = public
 as $$
 declare
   report_kind text := tg_argv[0];
+  status_changed boolean;
+  note_changed boolean;
 begin
-  if old.status is distinct from new.status
-    or old.admin_note is distinct from new.admin_note then
+  status_changed := (to_jsonb(old) ->> 'status') is distinct from (to_jsonb(new) ->> 'status');
+  note_changed := (to_jsonb(old) ->> 'admin_note') is distinct from (to_jsonb(new) ->> 'admin_note');
+
+  if status_changed or note_changed then
     insert into public.report_action_history
       (report_type, report_id, admin_id, action, note, old_status, new_status)
     values (
-      report_kind,
-      new.id,
-      auth.uid(),
+      report_kind::text,
+      (to_jsonb(new) ->> 'id')::uuid,
+      auth.uid()::uuid,
       case
-        when old.status is distinct from new.status then 'status_changed'
+        when status_changed then 'status_changed'::text
         else 'note_updated'
       end,
-      new.admin_note,
-      old.status,
-      new.status
+      to_jsonb(new) ->> 'admin_note',
+      to_jsonb(old) ->> 'status',
+      to_jsonb(new) ->> 'status'
     );
   end if;
   return new;
