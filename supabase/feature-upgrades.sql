@@ -18,6 +18,19 @@ create index if not exists notifications_recipient_created_idx
 create index if not exists notifications_unread_idx
   on public.notifications(recipient_id, read_at) where read_at is null;
 
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id::text = auth.uid()::text and role = 'admin'
+  );
+$$;
+
 alter table public.notifications enable row level security;
 grant select on public.notifications to authenticated;
 revoke update on public.notifications from authenticated;
@@ -49,14 +62,14 @@ create policy "Users can send chat messages"
     and sender_id::text <> recipient_id::text
     and exists (
       select 1 from public.products
-      where products.id::text = chat_messages.product_id
+      where products.id::text = chat_messages.product_id::text
         and (
           (products.seller_id::text = recipient_id::text and products.seller_id::text <> sender_id::text)
           or (
             products.seller_id::text = sender_id::text
             and exists (
               select 1 from public.chat_messages prior_message
-              where prior_message.product_id = chat_messages.product_id
+              where prior_message.product_id::text = chat_messages.product_id::text
                 and prior_message.sender_id::text = chat_messages.recipient_id::text
                 and prior_message.recipient_id::text = chat_messages.sender_id::text
             )
@@ -117,7 +130,7 @@ set search_path = public
 as $$
   with participants as (
     select
-      chat_messages.product_id,
+      chat_messages.product_id::text as product_id,
       case
         when chat_messages.sender_id::text = auth.uid()::text then chat_messages.recipient_id::text::uuid
         else chat_messages.sender_id::text::uuid
@@ -165,7 +178,7 @@ declare
 begin
   select title into listing_title
   from public.products
-  where id::text = new.product_id;
+  where id::text = new.product_id::text;
 
   insert into public.notifications (recipient_id, actor_id, type, title, body, data)
   select row_data.recipient_id, row_data.actor_id, row_data.type, row_data.title, row_data.body, row_data.data
@@ -251,7 +264,7 @@ create policy "Sellers and admins read listing views"
     public.is_admin()
     or exists (
       select 1 from public.products
-      where products.id::text = listing_views.product_id
+      where products.id::text = listing_views.product_id::text
         and products.seller_id::text = auth.uid()::text
     )
   );
@@ -262,7 +275,7 @@ create policy "Users record their own listing views"
     viewer_id::text = auth.uid()::text
     and exists (
       select 1 from public.products
-      where products.id::text = listing_views.product_id
+      where products.id::text = listing_views.product_id::text
         and products.status = 'active'
         and products.approval_status = 'approved'
         and products.seller_id::text <> auth.uid()::text
